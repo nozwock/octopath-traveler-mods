@@ -188,6 +188,33 @@ local function GetPlayerDash()
 	return KSGameStatics:GetPlayerDash(UEHelpers.GetWorld())
 end
 
-RegisterKeyBindAsync(Keybind["Key"], Keybind["ModifierKeys"], function()
-	KSGameStatics:SetPlayerDash(UEHelpers.GetWorld(), not GetPlayerDash())
+---@param v boolean
+local function SetPlayerDash(v)
+	KSGameStatics:SetPlayerDash(UEHelpers.GetWorld(), v)
+end
+
+local DashState = {
+	UserToggled = false,
+	IgnoreDashHookCount = 0,
+}
+
+RegisterKeyBind(Keybind["Key"], Keybind["ModifierKeys"], function()
+	DashState.UserToggled = not GetPlayerDash()
+	SetPlayerDash(DashState.UserToggled)
+end)
+
+RegisterHook("/Script/Octopath_Traveler.KSGameStatics:SetPlayerDash", function()
+	-- note: The control flow here is finnicky and fragile, do pay attention
+	local NextDash = not GetPlayerDash()
+	if DashState.IgnoreDashHookCount > 0 then
+		DashState.IgnoreDashHookCount = DashState.IgnoreDashHookCount - 1
+	else
+		-- Re-enable dash if it got turned off by the game while the user still has the dash toggled
+		if not NextDash and DashState.UserToggled then
+			DashState.IgnoreDashHookCount = DashState.IgnoreDashHookCount + 1
+			ExecuteWithDelay(100, function()
+				SetPlayerDash(true)
+			end)
+		end
+	end
 end)
