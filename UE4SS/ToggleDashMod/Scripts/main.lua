@@ -184,6 +184,7 @@ if not KSGameStatics:IsValid() then
 	)
 end
 
+---@return boolean
 local function GetPlayerDash()
 	return KSGameStatics:GetPlayerDash(UEHelpers.GetWorld())
 end
@@ -201,6 +202,12 @@ local DashState = {
 RegisterKeyBind(Keybind["Key"], Keybind["ModifierKeys"], function()
 	DashState.UserToggled = not GetPlayerDash()
 	SetPlayerDash(DashState.UserToggled)
+end)
+
+RegisterHook("/Game/Character/BP/ActionController_Impl.ActionController_Impl_C:OnActionDash", function()
+	if DashState.UserToggled then
+		DashState.UserToggled = false
+	end
 end)
 
 RegisterHook("/Script/Octopath_Traveler.KSGameStatics:SetPlayerDash", function()
