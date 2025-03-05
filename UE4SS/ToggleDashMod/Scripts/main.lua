@@ -176,7 +176,7 @@ Keybind = { ["Key"] = Key.SPACE, ["ModifierKeys"] = {} }
 
 local UEHelpers = require("UEHelpers")
 
-KSGameStatics = FindFirstOf("KSGameStatics")
+local KSGameStatics = FindFirstOf("KSGameStatics")
 if not KSGameStatics:IsValid() then
 	KSGameStatics = StaticConstructObject(
 		StaticFindObject("/Script/Octopath_Traveler.KSGameStatics"),
