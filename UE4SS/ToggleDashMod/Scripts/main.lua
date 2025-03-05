@@ -194,34 +194,51 @@ local function SetPlayerDash(v)
 	KSGameStatics:SetPlayerDash(UEHelpers.GetWorld(), v)
 end
 
-local DashState = {
-	UserToggled = false,
-	IgnoreDashHookCount = 0,
+local DashActionFnName = {
+	Press = "/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C:InpActEvt_Dash_K2Node_InputActionEvent_56",
+	Release = "/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C:InpActEvt_Dash_K2Node_InputActionEvent_57",
 }
 
-RegisterKeyBind(Keybind["Key"], Keybind["ModifierKeys"], function()
-	DashState.UserToggled = not GetPlayerDash()
-	SetPlayerDash(DashState.UserToggled)
-end)
+local function Init()
+	local UserToggledDash = false
 
-RegisterHook("/Game/Character/BP/ActionController_Impl.ActionController_Impl_C:OnActionDash", function()
-	if DashState.UserToggled then
-		DashState.UserToggled = false
-	end
-end)
+	RegisterKeyBind(Keybind["Key"], Keybind["ModifierKeys"], function()
+		UserToggledDash = not GetPlayerDash()
+		SetPlayerDash(UserToggledDash)
+	end)
 
-RegisterHook("/Script/Octopath_Traveler.KSGameStatics:SetPlayerDash", function()
-	-- note: The control flow here is finnicky and fragile, do pay attention
-	local NextDash = not GetPlayerDash()
-	if DashState.IgnoreDashHookCount > 0 then
-		DashState.IgnoreDashHookCount = DashState.IgnoreDashHookCount - 1
-	else
-		-- Re-enable dash if it got turned off by the game while the user still has the dash toggled
-		if not NextDash and DashState.UserToggled then
-			DashState.IgnoreDashHookCount = DashState.IgnoreDashHookCount + 1
-			ExecuteWithDelay(100, function()
-				SetPlayerDash(true)
-			end)
+	-- note: ActionController_Impl_C:OnActionDash triggers for dash key press and releases, and resets by game
+	-- Resets by game trigger both :OnActionDash and :ResetDash
+	--
+	-- So the below could be done with just one hook to :OnActionDash I believe
+
+	-- Re-enable dash if it got turned off by the game while the user still has the dash toggled
+	RegisterHook("/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C:ResetDash", function()
+		if UserToggledDash then
+			SetPlayerDash(true)
 		end
-	end
-end)
+	end)
+	RegisterHook(DashActionFnName.Release, function()
+		if UserToggledDash then
+			SetPlayerDash(true)
+		end
+	end)
+end
+
+if pcall(UEHelpers.GetPlayerController) then
+	Init()
+else
+	local InitHookIds = {}
+	local PreId, PostId = RegisterHook("/Script/Engine.PlayerController:ClientRestart", function()
+		Init()
+
+		if InitHookIds.PreId then
+			UnregisterHook("/Script/Engine.PlayerController:ClientRestart", InitHookIds.PreId, InitHookIds.PostId)
+		else
+			print("[ToggleDash] Failed to unregister Init hook")
+		end
+	end)
+
+	InitHookIds.PreId = PreId
+	InitHookIds.PostId = PostId
+end
