@@ -2,7 +2,7 @@ local UEHelpers = require("UEHelpers")
 local Settings = require("settings")
 
 local function Log(msg)
-	print("[GameSpeedUp] " .. msg .. "\n")
+	print("[SpeedWarp] " .. msg .. "\n")
 end
 
 Log("Processing settings")
