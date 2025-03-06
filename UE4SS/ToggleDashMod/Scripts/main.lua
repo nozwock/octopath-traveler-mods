@@ -1,4 +1,4 @@
-Keybind = { ["Key"] = Key.SPACE, ["ModifierKeys"] = {} }
+local Keybind = { Key = Key.SPACE, ModifierKeys = {} }
 
 --[[
     Valid keys:
@@ -176,34 +176,61 @@ Keybind = { ["Key"] = Key.SPACE, ["ModifierKeys"] = {} }
 
 local UEHelpers = require("UEHelpers")
 
-local KSGameStatics = FindFirstOf("KSGameStatics")
-if not KSGameStatics:IsValid() then
-	KSGameStatics = StaticConstructObject(
-		StaticFindObject("/Script/Octopath_Traveler.KSGameStatics"),
-		StaticFindObject("/Script/Engine.BlueprintFunctionLibrary")
-	)
+--- Runs callback once PlayerController is available
+---@param InitCallback function
+local function RegisterMod(InitCallback)
+	if pcall(UEHelpers.GetPlayerController) then
+		-- For hot-reloading
+		InitCallback()
+	else
+		local InitHookIds
+		local PreId, PostId = RegisterHook("/Script/Engine.PlayerController:ClientRestart", function()
+			if InitHookIds then
+				UnregisterHook("/Script/Engine.PlayerController:ClientRestart", table.unpack(InitHookIds))
+			else
+				print("[function StartMod] Failed to unregister Init hook")
+			end
+
+			InitCallback()
+		end)
+
+		InitHookIds = { PreId, PostId }
+	end
 end
 
----@return boolean
-local function GetPlayerDash()
-	return KSGameStatics:GetPlayerDash(UEHelpers.GetWorld())
+local function Log(msg)
+	print("[ToggleDash] " .. msg)
 end
 
----@param v boolean
-local function SetPlayerDash(v)
-	KSGameStatics:SetPlayerDash(UEHelpers.GetWorld(), v)
+local function GetKSGameStatics()
+    return StaticFindObject("/Script/Octopath_Traveler.Default__KSGameStatics")
 end
 
-local DashActionFnName = {
-	Press = "/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C:InpActEvt_Dash_K2Node_InputActionEvent_56",
-	Release = "/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C:InpActEvt_Dash_K2Node_InputActionEvent_57",
-}
+RegisterMod(function()
+    Log("Starting mod initialization")
 
-local function Init()
+	local KSGameStatics = GetKSGameStatics()
+	assert(KSGameStatics:IsValid())
+
+	---@return boolean
+	local function GetPlayerDash()
+		return KSGameStatics:GetPlayerDash(UEHelpers.GetWorld())
+	end
+
+	---@param v boolean
+	local function SetPlayerDash(v)
+		KSGameStatics:SetPlayerDash(UEHelpers.GetWorld(), v)
+	end
+
+	local DashActionFnName = {
+		Press = "/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C:InpActEvt_Dash_K2Node_InputActionEvent_56",
+		Release = "/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C:InpActEvt_Dash_K2Node_InputActionEvent_57",
+	}
+
 	local UserToggledDash = false
 
 	RegisterKeyBind(Keybind["Key"], Keybind["ModifierKeys"], function()
-		UserToggledDash = not GetPlayerDash()
+		UserToggledDash = not UserToggledDash
 		SetPlayerDash(UserToggledDash)
 	end)
 
@@ -223,22 +250,6 @@ local function Init()
 			SetPlayerDash(true)
 		end
 	end)
-end
 
-if pcall(UEHelpers.GetPlayerController) then
-	Init()
-else
-	local InitHookIds = {}
-	local PreId, PostId = RegisterHook("/Script/Engine.PlayerController:ClientRestart", function()
-		Init()
-
-		if InitHookIds.PreId then
-			UnregisterHook("/Script/Engine.PlayerController:ClientRestart", InitHookIds.PreId, InitHookIds.PostId)
-		else
-			print("[ToggleDash] Failed to unregister Init hook")
-		end
-	end)
-
-	InitHookIds.PreId = PreId
-	InitHookIds.PostId = PostId
-end
+    Log("Mod initialization complete")
+end)
