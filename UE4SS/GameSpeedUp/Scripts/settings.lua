@@ -7,6 +7,9 @@ Settings.GameSpeedList = { 2 }
 
 -- Automatically speed up game when entering combat, and restore game speed
 -- on battle over to whatever it was before starting the battle
+--
+-- Speed wouldn't be restored after battle if the user changes the game speed
+-- using the GameSpeedCycle hotkey
 Settings.AutoCombatSpeedup = {
 	Enable = true,
 	CombatGameSpeed = 2,
