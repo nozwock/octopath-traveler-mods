@@ -13,6 +13,8 @@ Settings.GameSpeedList = { 2 }
 Settings.AutoCombatSpeedup = {
 	Enable = true,
 	CombatGameSpeed = 2,
+	-- Only speed up the game after the player selects a battle action
+	OnlyInTurnResolution = true,
 }
 
 -- Cycle through all the speeds in the GameSpeedList

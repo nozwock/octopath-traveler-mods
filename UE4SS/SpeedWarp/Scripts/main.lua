@@ -88,6 +88,7 @@ RegisterMod(function()
 
 	Log(string.format("AutoCombatSpeedup.Enable:%s", tostring(Settings.AutoCombatSpeedup.Enable)))
 	if Settings.AutoCombatSpeedup.Enable then
+		-- For hot-reloading
 		if ModState.InBattle then
 			-- This is mostly for convenience incase let's you have 2 game speed set, 1x, and 2x
 			-- With ActiveGameSpeed currently being 1x and the CombatGameSpeed being 2x, so now in combat,
@@ -97,10 +98,38 @@ RegisterMod(function()
 				ModState.ActiveGameSpeedIdx = ModState.CombatGameSpeedIdx
 			end
 
-			-- Set combat game speed regardless of whether the value is in GameSpeedList
-			SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
+			local BattleManager = FindFirstOf("BattleManagerBP_C")
+			if Settings.AutoCombatSpeedup.OnlyInTurnResolution and BattleManager:IsValid() then
+				local _ret = {}
+				BattleManager:GetCurrentFlow(_ret)
+
+				if _ret.CurrentFlow ~= 5 then
+					-- Set combat game speed regardless of whether the value is in GameSpeedList
+					SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
+				else
+					SetGameSpeed(Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
+				end
+			else
+				SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
+			end
 		else
 			SetGameSpeed(Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
+		end
+
+		if Settings.AutoCombatSpeedup.OnlyInTurnResolution then
+			RegisterHook(
+				"/Game/Battle/BP/BattleManagerBP.BattleManagerBP_C:ChangeBattleFlow",
+				function(self, NextFlow, CurrentFlow, IsChange)
+					if not ModState.IsSpeedChangedDuringBattle then
+						local CurrentFlowVal = CurrentFlow:get()
+						if CurrentFlowVal == 8 then -- After user input
+							SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
+						elseif CurrentFlowVal == 5 then -- Waiting for user input
+							SetGameSpeed(1)
+						end
+					end
+				end
+			)
 		end
 
 		RegisterHook("/Game/Battle/BP/BattleManagerBP.BattleManagerBP_C:Start", function()
