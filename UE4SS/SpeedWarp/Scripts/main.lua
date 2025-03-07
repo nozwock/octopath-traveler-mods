@@ -80,6 +80,7 @@ RegisterMod(function()
 		GameSpeedIdxBeforeBattle = 1,
 		ActiveGameSpeedIdx = 1,
 		CombatGameSpeedIdx = LinearSearch(Settings.GameSpeedList, Settings.AutoCombatSpeedup.CombatGameSpeed),
+		CombatGameSpeedOn = false,
 	}
 
 	local function CycleActiveGameSpeed()
@@ -106,15 +107,29 @@ RegisterMod(function()
 				if _ret.CurrentFlow ~= 5 then
 					-- Set combat game speed regardless of whether the value is in GameSpeedList
 					SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
+					ModState.CombatGameSpeedOn = true
 				else
 					SetGameSpeed(Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
 				end
 			else
 				SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
+				ModState.CombatGameSpeedOn = true
 			end
 		else
 			SetGameSpeed(Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
 		end
+
+		--[[
+            Battle Flow enum observations:
+            5: Waiting on user to decide their turn
+            13, 14: Victory
+            15: Defeat
+            16: Flee
+            17: Closing batlle
+            18: Battle closed
+            12: Triggers a lot in b/w the back and forth of player and enemies, but
+                also the first one to trigger when exiting from battle in some way
+        --]]
 
 		if Settings.AutoCombatSpeedup.OnlyInTurnResolution then
 			RegisterHook(
@@ -122,16 +137,22 @@ RegisterMod(function()
 				function(self, NextFlow, CurrentFlow, IsChange)
 					if not ModState.IsSpeedChangedDuringBattle then
 						local CurrentFlowVal = CurrentFlow:get()
-						if CurrentFlowVal == 8 then -- After user input
-							SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
-						elseif CurrentFlowVal == 5 then -- Waiting for user input
+						if
+							ModState.CombatGameSpeedOn
+							and (CurrentFlowVal == 5 or (CurrentFlowVal >= 13 and CurrentFlowVal <= 15))
+						then
 							SetGameSpeed(1)
+							ModState.CombatGameSpeedOn = false
+						elseif not ModState.CombatGameSpeedOn and (CurrentFlowVal == 8 or CurrentFlowVal == 12) then
+							SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
+							ModState.CombatGameSpeedOn = true
 						end
 					end
 				end
 			)
 		end
 
+		-- Called at BattleFlow 2?
 		RegisterHook("/Game/Battle/BP/BattleManagerBP.BattleManagerBP_C:Start", function()
 			-- Performing check since this gets called many times when the battle is starting
 			if not ModState.InBattle then
@@ -140,9 +161,11 @@ RegisterMod(function()
 					ModState.ActiveGameSpeedIdx = ModState.CombatGameSpeedIdx
 				end
 				SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
+				ModState.CombatGameSpeedOn = true
 				ModState.InBattle = true
 			end
 		end)
+		-- Called at BattleFlow 17?
 		RegisterHook("/Game/Battle/BP/BattleManagerBP.BattleManagerBP_C:EndProcess", function()
 			if ModState.InBattle then
 				if not ModState.IsSpeedChangedDuringBattle then
@@ -153,6 +176,7 @@ RegisterMod(function()
 					ModState.IsSpeedChangedDuringBattle = false
 				end
 				ModState.InBattle = false
+				ModState.CombatGameSpeedOn = false
 			end
 		end)
 	end
