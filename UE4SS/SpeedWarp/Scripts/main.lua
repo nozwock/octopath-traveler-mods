@@ -60,12 +60,6 @@ RegisterMod(function()
 
 	local GameplayStatics = UEHelpers.GetGameplayStatics()
 
-	---@param speed number
-	local function SetGameSpeed(speed)
-		Log(string.format("GameSpeed:%.2f", speed))
-		GameplayStatics:SetGlobalTimeDilation(UEHelpers.GetWorld(), speed)
-	end
-
 	local KSGameStatics = GetKSGameStatics()
 	assert(KSGameStatics:IsValid())
 
@@ -81,7 +75,30 @@ RegisterMod(function()
 		ActiveGameSpeedIdx = 1,
 		CombatGameSpeedIdx = LinearSearch(Settings.GameSpeedList, Settings.AutoCombatSpeedup.CombatGameSpeed),
 		CombatGameSpeedOn = false,
+		ActiveTimeDilation = 1,
+		CallingSetTimeDilation = false,
 	}
+
+	---@param speed number
+	local function SetGameSpeed(speed)
+		-- Log(string.format("GameSpeed:%.2f", speed))
+		ModState.ActiveTimeDilation = speed
+		ModState.CallingSetTimeDilation = true
+		GameplayStatics:SetGlobalTimeDilation(UEHelpers.GetWorld(), speed)
+		ModState.CallingSetTimeDilation = false
+	end
+
+	RegisterHook("/Script/Engine.GameplayStatics:SetGlobalTimeDilation", function() end, function()
+		if not ModState.CallingSetTimeDilation then
+			-- print(
+			-- 	string.format(
+			-- 		"[HOOK:AFTER] PrevGameSpeed:%.2f, Overriding GameSpeed set outside of the mod",
+			-- 		ModState.CurrentTimeDilation
+			-- 	)
+			-- )
+			SetGameSpeed(ModState.ActiveTimeDilation)
+		end
+	end)
 
 	local function CycleActiveGameSpeed()
 		ModState.ActiveGameSpeedIdx = ModState.ActiveGameSpeedIdx % #Settings.GameSpeedList + 1
