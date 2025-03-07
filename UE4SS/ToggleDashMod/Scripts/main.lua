@@ -228,6 +228,7 @@ RegisterMod(function()
 	}
 
 	local UserToggledDash = false
+	SetPlayerDash(false) -- for hot-reloading
 
 	RegisterKeyBind(Keybind["Key"], Keybind["ModifierKeys"], function()
 		UserToggledDash = not UserToggledDash
