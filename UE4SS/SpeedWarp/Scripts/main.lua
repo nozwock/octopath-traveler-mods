@@ -62,7 +62,7 @@ RegisterMod(function()
 
 	---@param speed number
 	local function SetGameSpeed(speed)
-		Log(string.format("GameSpeed:%d", speed))
+		Log(string.format("GameSpeed:%.2f", speed))
 		GameplayStatics:SetGlobalTimeDilation(UEHelpers.GetWorld(), speed)
 	end
 
