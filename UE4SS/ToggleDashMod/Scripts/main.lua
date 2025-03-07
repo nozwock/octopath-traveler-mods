@@ -203,11 +203,11 @@ local function Log(msg)
 end
 
 local function GetKSGameStatics()
-    return StaticFindObject("/Script/Octopath_Traveler.Default__KSGameStatics")
+	return StaticFindObject("/Script/Octopath_Traveler.Default__KSGameStatics")
 end
 
 RegisterMod(function()
-    Log("Starting mod initialization")
+	Log("Starting mod initialization")
 
 	local KSGameStatics = GetKSGameStatics()
 	assert(KSGameStatics:IsValid())
@@ -251,5 +251,5 @@ RegisterMod(function()
 		end
 	end)
 
-    Log("Mod initialization complete")
+	Log("Mod initialization complete")
 end)
