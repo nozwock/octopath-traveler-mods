@@ -28,7 +28,7 @@ end
 
 ---@param Class UObject
 ---@param FunctionPattern string
----@return [UFunction]?
+---@return UFunction[]?
 local function FindFunctionsByPattern(Class, FunctionPattern)
 	if not Class:IsValid() then
 		return nil
