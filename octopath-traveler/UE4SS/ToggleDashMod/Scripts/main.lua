@@ -1,5 +1,9 @@
 local UEHelpers = require("UEHelpers")
 
+local function Log(msg)
+	print("[ToggleDash] " .. msg .. "\n")
+end
+
 --- Runs callback once PlayerController is available
 ---@param InitCallback function
 local function RegisterMod(InitCallback)
@@ -12,7 +16,7 @@ local function RegisterMod(InitCallback)
 			if InitHookIds then
 				UnregisterHook("/Script/Engine.PlayerController:ClientRestart", table.unpack(InitHookIds))
 			else
-				print("[function StartMod] Failed to unregister Init hook")
+				Log("Failed to unregister Init hook")
 			end
 
 			InitCallback()
@@ -22,18 +26,53 @@ local function RegisterMod(InitCallback)
 	end
 end
 
-local function Log(msg)
-	print("[ToggleDash] " .. msg)
+---@param Class UObject
+---@param FunctionPattern string
+---@return [UFunction]?
+local function FindFunctionsByPattern(Class, FunctionPattern)
+	if not Class:IsValid() then
+		return nil
+	end
+
+	local Results = {}
+	Class:ForEachFunction(function(Function)
+		local FunctionName = Function:GetFName():ToString()
+
+		if string.find(FunctionName, FunctionPattern) then
+			table.insert(Results, Function)
+		end
+	end)
+
+	return Results
 end
 
-local function GetKSGameStatics()
-	return StaticFindObject("/Script/Octopath_Traveler.Default__KSGameStatics")
+---@return boolean
+local function IsRunningFirstGame()
+	local KSGameStaticsClass = StaticFindObject("/Script/Octopath_Traveler.KSGameStatics")
+	if KSGameStaticsClass:IsValid() then
+		return true
+	end
+
+	KSGameStaticsClass = StaticFindObject("/Script/Majesty.Default__KSGameStatics")
+	if KSGameStaticsClass:IsValid() then
+		return false
+	end
+
+	error("Mod doesn't seem to be running on either Octopath 1 or 2")
 end
 
 RegisterMod(function()
 	Log("Starting mod initialization")
 
-	local KSGameStatics = GetKSGameStatics()
+	local IsRunningFirstGameBool = IsRunningFirstGame()
+	Log(string.format("IsRunningFirstGame:%s", tostring(IsRunningFirstGameBool)))
+
+	local KSGameStatics
+	if IsRunningFirstGameBool then
+		KSGameStatics = StaticFindObject("/Script/Octopath_Traveler.Default__KSGameStatics")
+	else
+		KSGameStatics = StaticFindObject("/Script/Majesty.Default__KSGameStatics")
+	end
 	assert(KSGameStatics:IsValid())
 
 	---@return boolean
@@ -46,33 +85,56 @@ RegisterMod(function()
 		KSGameStatics:SetPlayerDash(UEHelpers.GetWorld(), v)
 	end
 
-	local DashActionFnName = {
-		Press = "/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C:InpActEvt_Dash_K2Node_InputActionEvent_56",
-		Release = "/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C:InpActEvt_Dash_K2Node_InputActionEvent_57",
-	}
+	local KSPlayerControllerBPClassPath = "/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C"
+	local KSPlayerControllerBPClass = StaticFindObject(KSPlayerControllerBPClassPath)
+	assert(KSPlayerControllerBPClass:IsValid())
+
+	local DashActionFnName
+	do
+		-- An e.g. full path for press:
+		-- /Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C:InpActEvt_Dash_K2Node_InputActionEvent_75
+		--
+		-- I've only ever noticed the Press input having a lower number suffix, so I'm going to rely on that behaviour here
+		-- to get the press and release function name programmatically
+
+		local DashActionFns = FindFunctionsByPattern(KSPlayerControllerBPClass, "InpActEvt_Dash")
+		assert(DashActionFns)
+		assert(#DashActionFns >= 2)
+
+		for i = 1, #DashActionFns do
+			DashActionFns[i] = (DashActionFns[i]):GetFName():ToString()
+		end
+		table.sort(DashActionFns, function(a, b)
+			return a < b
+		end)
+
+		DashActionFnName = { Press = DashActionFns[1], Release = DashActionFns[2] }
+	end
 
 	local UserToggledDash = false
 	SetPlayerDash(false) -- for hot-reloading
 
-	RegisterHook(DashActionFnName.Press, function()
+	RegisterHook(string.format("%s:%s", KSPlayerControllerBPClassPath, DashActionFnName.Press), function()
 		UserToggledDash = not UserToggledDash
 		-- Not calling SetPlayerDash, since the game will call it anyways
 	end)
-	RegisterHook(DashActionFnName.Release, function()
+	RegisterHook(string.format("%s:%s", KSPlayerControllerBPClassPath, DashActionFnName.Release), function()
 		if UserToggledDash then
 			SetPlayerDash(true) -- Re-enabling dash if the user has it toggled
 		end
 	end)
 
-	-- note: ActionController_Impl_C:OnActionDash triggers for dash key press and releases, and resets by game
-	-- Resets by game trigger both :OnActionDash and :ResetDash
+	if IsRunningFirstGameBool then
+		-- note: ActionController_Impl_C:OnActionDash triggers for dash key press and releases, and resets by game
+		-- Resets by game trigger both :OnActionDash and :ResetDash
 
-	-- Re-enable dash if it got turned off by the game while the user still has the dash toggled
-	RegisterHook("/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C:ResetDash", function()
-		if UserToggledDash then
-			SetPlayerDash(true)
-		end
-	end)
+		-- Re-enable dash if it got turned off by the game while the user still has the dash toggled
+		RegisterHook("/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C:ResetDash", function()
+			if UserToggledDash then
+				SetPlayerDash(true)
+			end
+		end)
+	end
 
 	Log("Mod initialization complete")
 end)
