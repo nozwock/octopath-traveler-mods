@@ -134,7 +134,7 @@ RegisterMod(function()
 					SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
 					ModState.CombatGameSpeedOn = true
 				else
-					SetGameSpeed(Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
+					SetGameSpeed(Settings.GameSpeedList[ModState.GameSpeedIdxBeforeBattle])
 				end
 			else
 				SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
