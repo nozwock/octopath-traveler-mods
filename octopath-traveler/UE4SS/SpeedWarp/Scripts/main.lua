@@ -221,14 +221,15 @@ RegisterMod(function()
 			ModState.IsSpeedChangedDuringBattle = true
 		end
 
+		local IsHandledInTurnResolution = (
+			Settings.AutoCombatSpeedup.Enable
+			and bIsBattleOn
+			and Settings.AutoCombatSpeedup.OnlyInTurnResolution
+			and ShouldResetCombatSpeed(ModState.LastBattleFlow)
+		)
+
 		CycleActiveGameSpeed()
-		if
-			not (
-				bIsBattleOn
-				and Settings.AutoCombatSpeedup.OnlyInTurnResolution
-				and ShouldResetCombatSpeed(ModState.LastBattleFlow)
-			)
-		then
+		if not IsHandledInTurnResolution then
 			SetGameSpeed(Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
 		end
 	end)
