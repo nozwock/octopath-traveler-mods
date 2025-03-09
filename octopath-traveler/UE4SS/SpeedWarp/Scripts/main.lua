@@ -5,6 +5,8 @@ local function Log(msg)
 	print("[SpeedWarp] " .. msg .. "\n")
 end
 
+-- todo: Add an option to not bleed in the game speed changes made in combat outside of combat
+
 Log("Processing settings")
 table.insert(Settings.GameSpeedList, 1, 1) -- Implicit 1x
 for _, keybind in pairs(Settings.Keybinds) do
@@ -59,13 +61,24 @@ RegisterMod(function()
 	Log("Starting mod initialization")
 
 	local GameplayStatics = UEHelpers.GetGameplayStatics()
+	assert(GameplayStatics:IsValid())
 
 	local KSGameStatics = GetKSGameStatics()
 	assert(KSGameStatics:IsValid())
 
+	local BattleManager = StaticFindObject("/Game/Battle/BP/BattleManagerBP.Default__BattleManagerBP_C")
+	assert(BattleManager:IsValid())
+
 	---@return boolean
 	local function IsBattleOn()
 		return KSGameStatics:GetBattleMode(UEHelpers.GetWorld())
+	end
+
+	---@return integer
+	local function GetBattleFlow()
+		local Ret = {}
+		BattleManager:GetCurrentFlow(Ret)
+		return Ret.CurrentFlow
 	end
 
 	local ModState = {
@@ -77,11 +90,11 @@ RegisterMod(function()
 		CombatGameSpeedOn = false,
 		ActiveTimeDilation = 1,
 		CallingSetTimeDilation = false,
+		LastBattleFlow = nil,
 	}
 
 	---@param speed number
 	local function SetGameSpeed(speed)
-		-- Log(string.format("GameSpeed:%.2f", speed))
 		ModState.ActiveTimeDilation = speed
 		ModState.CallingSetTimeDilation = true
 		GameplayStatics:SetGlobalTimeDilation(UEHelpers.GetWorld(), speed)
@@ -90,21 +103,30 @@ RegisterMod(function()
 
 	RegisterHook("/Script/Engine.GameplayStatics:SetGlobalTimeDilation", function() end, function()
 		if not ModState.CallingSetTimeDilation then
-			-- print(
-			-- 	string.format(
-			-- 		"[HOOK:AFTER] PrevGameSpeed:%.2f, Overriding GameSpeed set outside of the mod",
-			-- 		ModState.CurrentTimeDilation
-			-- 	)
-			-- )
 			SetGameSpeed(ModState.ActiveTimeDilation)
 		end
 	end)
 
 	local function CycleActiveGameSpeed()
 		ModState.ActiveGameSpeedIdx = ModState.ActiveGameSpeedIdx % #Settings.GameSpeedList + 1
+		-- Log("ActiveGameSpeed:" .. Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
 	end
 
-	Log(string.format("AutoCombatSpeedup.Enable:%s", tostring(Settings.AutoCombatSpeedup.Enable)))
+	Log(
+		string.format(
+			"AutoCombatSpeedup.Enable:%s, OnlyInTurnResolution:%s",
+			tostring(Settings.AutoCombatSpeedup.Enable),
+			tostring(Settings.AutoCombatSpeedup.OnlyInTurnResolution)
+		)
+	)
+
+	local function ShouldResetCombatSpeed(BattleFlow)
+		return BattleFlow == 0 or BattleFlow == 5 or (BattleFlow >= 13 and BattleFlow <= 15)
+	end
+	local function ShouldIncreaseCombatSpeed(BattleFlow)
+		return BattleFlow == 8 or BattleFlow == 12
+	end
+
 	if Settings.AutoCombatSpeedup.Enable then
 		-- For hot-reloading
 		if ModState.InBattle then
@@ -116,12 +138,9 @@ RegisterMod(function()
 				ModState.ActiveGameSpeedIdx = ModState.CombatGameSpeedIdx
 			end
 
-			local BattleManager = FindFirstOf("BattleManagerBP_C")
-			if Settings.AutoCombatSpeedup.OnlyInTurnResolution and BattleManager:IsValid() then
-				local _ret = {}
-				BattleManager:GetCurrentFlow(_ret)
-
-				if _ret.CurrentFlow ~= 5 then
+			if Settings.AutoCombatSpeedup.OnlyInTurnResolution then
+				ModState.LastBattleFlow = GetBattleFlow()
+				if not ShouldResetCombatSpeed(ModState.LastBattleFlow) then
 					-- Set combat game speed regardless of whether the value is in GameSpeedList
 					SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
 					ModState.CombatGameSpeedOn = true
@@ -152,18 +171,19 @@ RegisterMod(function()
 			RegisterHook(
 				"/Game/Battle/BP/BattleManagerBP.BattleManagerBP_C:ChangeBattleFlow",
 				function(self, NextFlow, CurrentFlow, IsChange)
-					if not ModState.IsSpeedChangedDuringBattle then
-						local CurrentFlowVal = CurrentFlow:get()
-						if
-							ModState.CombatGameSpeedOn
-							and (CurrentFlowVal == 5 or (CurrentFlowVal >= 13 and CurrentFlowVal <= 15))
-						then
-							SetGameSpeed(1)
-							ModState.CombatGameSpeedOn = false
-						elseif not ModState.CombatGameSpeedOn and (CurrentFlowVal == 8 or CurrentFlowVal == 12) then
-							SetGameSpeed(Settings.AutoCombatSpeedup.CombatGameSpeed)
-							ModState.CombatGameSpeedOn = true
-						end
+					local CombatGameSpeed = Settings.AutoCombatSpeedup.CombatGameSpeed
+					if ModState.IsSpeedChangedDuringBattle then
+						CombatGameSpeed = Settings.GameSpeedList[ModState.ActiveGameSpeedIdx]
+					end
+
+					local iCurrentFlow = CurrentFlow:get()
+					ModState.LastBattleFlow = iCurrentFlow
+					if ModState.CombatGameSpeedOn and ShouldResetCombatSpeed(iCurrentFlow) then
+						SetGameSpeed(1)
+						ModState.CombatGameSpeedOn = false
+					elseif not ModState.CombatGameSpeedOn and ShouldIncreaseCombatSpeed(iCurrentFlow) then
+						SetGameSpeed(CombatGameSpeed)
+						ModState.CombatGameSpeedOn = true
 					end
 				end
 			)
@@ -200,12 +220,21 @@ RegisterMod(function()
 
 	local GameSpeedCycleKeybind = Settings.Keybinds.GameSpeedCycle
 	RegisterKeyBind(GameSpeedCycleKeybind.Key, GameSpeedCycleKeybind.ModifierKeys, function()
-		if Settings.AutoCombatSpeedup.Enable and IsBattleOn() then
+		local bIsBattleOn = IsBattleOn()
+		if Settings.AutoCombatSpeedup.Enable and bIsBattleOn then
 			ModState.IsSpeedChangedDuringBattle = true
 		end
 
 		CycleActiveGameSpeed()
-		SetGameSpeed(Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
+		if
+			not (
+				bIsBattleOn
+				and Settings.AutoCombatSpeedup.OnlyInTurnResolution
+				and ShouldResetCombatSpeed(ModState.LastBattleFlow)
+			)
+		then
+			SetGameSpeed(Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
+		end
 	end)
 
 	Log("Mod initialization complete")
