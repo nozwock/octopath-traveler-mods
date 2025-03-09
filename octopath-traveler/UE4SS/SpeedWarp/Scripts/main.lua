@@ -6,8 +6,6 @@ local function Log(msg)
 	print("[SpeedWarp] " .. msg .. "\n")
 end
 
--- todo: Add an option to not bleed in the game speed changes made in combat outside of combat
-
 Log("Processing settings:\n" .. inspect(Settings))
 table.insert(Settings.GameSpeedList, 1, 1) -- Implicit 1x
 for _, keybind in pairs(Settings.Keybinds) do
