@@ -189,6 +189,7 @@ RegisterMod(function()
 		RegisterHook("/Game/Battle/BP/BattleManagerBP.BattleManagerBP_C:Start", function()
 			-- Performing check since this gets called many times when the battle is starting
 			if not ModState.InBattle then
+				ModState.IsSpeedChangedDuringBattle = false
 				ModState.GameSpeedIdxBeforeBattle = ModState.ActiveGameSpeedIdx
 				if ModState.CombatGameSpeedIdx then
 					ModState.ActiveGameSpeedIdx = ModState.CombatGameSpeedIdx
@@ -205,9 +206,8 @@ RegisterMod(function()
 				if not ModState.IsSpeedChangedDuringBattle or Settings.AutoCombatSpeedup.ForceRestoreGameSpeed then
 					ModState.ActiveGameSpeedIdx = ModState.GameSpeedIdxBeforeBattle
 					SetGameSpeed(Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
-				else
-					ModState.IsSpeedChangedDuringBattle = false
 				end
+				ModState.IsSpeedChangedDuringBattle = false
 				ModState.InBattle = false
 				ModState.CombatGameSpeedOn = false
 			end
