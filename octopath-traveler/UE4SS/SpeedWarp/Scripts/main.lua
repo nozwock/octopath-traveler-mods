@@ -1,4 +1,5 @@
 local UEHelpers = require("UEHelpers")
+local inspect = require("inspect")
 local Settings = require("settings")
 
 local function Log(msg)
@@ -7,7 +8,7 @@ end
 
 -- todo: Add an option to not bleed in the game speed changes made in combat outside of combat
 
-Log("Processing settings")
+Log("Processing settings:\n" .. inspect(Settings))
 table.insert(Settings.GameSpeedList, 1, 1) -- Implicit 1x
 for _, keybind in pairs(Settings.Keybinds) do
 	keybind.Key = Key[string.upper(keybind.Key)]
@@ -91,6 +92,7 @@ RegisterMod(function()
 
 	---@param speed number
 	local function SetGameSpeed(speed)
+		-- Log("SetGameSpeed:" .. speed)
 		ModState.ActiveTimeDilation = speed
 		ModState.CallingSetTimeDilation = true
 		GameplayStatics:SetGlobalTimeDilation(UEHelpers.GetWorld(), speed)
@@ -99,6 +101,7 @@ RegisterMod(function()
 
 	RegisterHook("/Script/Engine.GameplayStatics:SetGlobalTimeDilation", function() end, function()
 		if not ModState.CallingSetTimeDilation then
+			-- Log("Overriding game speed set from outside the mod")
 			SetGameSpeed(ModState.ActiveTimeDilation)
 		end
 	end)
@@ -107,14 +110,6 @@ RegisterMod(function()
 		ModState.ActiveGameSpeedIdx = ModState.ActiveGameSpeedIdx % #Settings.GameSpeedList + 1
 		-- Log("CycledActiveGameSpeedTo:" .. Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
 	end
-
-	Log(
-		string.format(
-			"AutoCombatSpeedup.Enable:%s, OnlyInTurnResolution:%s",
-			tostring(Settings.AutoCombatSpeedup.Enable),
-			tostring(Settings.AutoCombatSpeedup.OnlyInTurnResolution)
-		)
-	)
 
 	local function ShouldResetCombatSpeed(BattleFlow)
 		return BattleFlow == 0 or BattleFlow == 5 or (BattleFlow >= 13 and BattleFlow <= 15)
@@ -173,6 +168,7 @@ RegisterMod(function()
 					end
 
 					local iCurrentFlow = CurrentFlow:get()
+					-- Log(iCurrentFlow .. " -> " .. NextFlow:get())
 					ModState.LastBattleFlow = iCurrentFlow
 					if ModState.CombatGameSpeedOn and ShouldResetCombatSpeed(iCurrentFlow) then
 						SetGameSpeed(1)
