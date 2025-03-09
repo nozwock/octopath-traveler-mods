@@ -86,7 +86,7 @@ RegisterMod(function()
 		CombatGameSpeedOn = false,
 		ActiveTimeDilation = 1,
 		CallingSetTimeDilation = false,
-		LastBattleFlow = nil,
+		LastBattleFlow = 0,
 	}
 
 	---@param speed number
