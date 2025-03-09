@@ -41,10 +41,6 @@ local function RegisterMod(InitCallback)
 	end
 end
 
-local function GetKSGameStatics()
-	return StaticFindObject("/Script/Octopath_Traveler.Default__KSGameStatics")
-end
-
 ---@param list [any]
 ---@param x any
 ---@return number?
@@ -63,7 +59,7 @@ RegisterMod(function()
 	local GameplayStatics = UEHelpers.GetGameplayStatics()
 	assert(GameplayStatics:IsValid())
 
-	local KSGameStatics = GetKSGameStatics()
+	local KSGameStatics = StaticFindObject("/Script/Octopath_Traveler.Default__KSGameStatics")
 	assert(KSGameStatics:IsValid())
 
 	local BattleManager = StaticFindObject("/Game/Battle/BP/BattleManagerBP.Default__BattleManagerBP_C")
