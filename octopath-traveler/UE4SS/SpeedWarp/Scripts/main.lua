@@ -105,7 +105,7 @@ RegisterMod(function()
 
 	local function CycleActiveGameSpeed()
 		ModState.ActiveGameSpeedIdx = ModState.ActiveGameSpeedIdx % #Settings.GameSpeedList + 1
-		-- Log("ActiveGameSpeed:" .. Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
+		-- Log("CycledActiveGameSpeedTo:" .. Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
 	end
 
 	Log(
@@ -201,8 +201,8 @@ RegisterMod(function()
 		-- Called at BattleFlow 17?
 		RegisterHook("/Game/Battle/BP/BattleManagerBP.BattleManagerBP_C:EndProcess", function()
 			if ModState.InBattle then
-				if not ModState.IsSpeedChangedDuringBattle then
-					-- Restore previous speed only if the speed wasn't changed by the user
+				-- Restore game speed after battle
+				if not ModState.IsSpeedChangedDuringBattle or Settings.AutoCombatSpeedup.ForceRestoreGameSpeed then
 					ModState.ActiveGameSpeedIdx = ModState.GameSpeedIdxBeforeBattle
 					SetGameSpeed(Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
 				else

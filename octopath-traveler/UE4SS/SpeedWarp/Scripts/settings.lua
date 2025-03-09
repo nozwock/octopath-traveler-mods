@@ -2,28 +2,33 @@ local Settings = { Keybinds = {} }
 
 -- EDITABLE SECTION START
 
--- 1x is in the list implicitly
+-- 1x is in the list implicitly.
 Settings.GameSpeedList = { 2 }
 
--- Automatically speed up game when entering combat, and restore game speed
--- on battle over to whatever it was before starting the battle
---
--- Speed wouldn't be restored after battle if the user changes the game speed
--- using the GameSpeedCycle hotkey
+-- Automatically increases game speed upon entering combat
+-- and restores the previous speed when the battle ends.
 Settings.AutoCombatSpeedup = {
 	Enable = true,
 	CombatGameSpeed = 2,
-	-- Only speed up the game after the player selects a battle action
+	-- Speeds up the game only after the player has chosen a battle action.
 	OnlyInTurnResolution = true,
+	-- Restores the game speed to its pre-battle value,
+	-- even if the user adjusted the speed mid-combat using GameSpeedCycle.
+	--
+	-- If disabled, the game speed will not be reset after battle
+	-- if the user changed it using the GameSpeedCycle hotkey.
+	ForceRestoreGameSpeed = true,
 }
 
--- Cycle through all the speeds in the GameSpeedList
+-- Cycle through all the speeds in the GameSpeedList.
 Settings.Keybinds.GameSpeedCycle = {
 	Key = "F8",
 	ModifierKeys = {},
 	-- E.g.
 	-- ModifierKeys = { "SHIFT", "ALT" },
 }
+
+-- EDITABLE SECTION END
 
 --[[
     Valid modifier keys:
@@ -203,7 +208,5 @@ Settings.Keybinds.GameSpeedCycle = {
     PA1
     OEM_CLEAR
 --]]
-
--- EDITABLE SECTION END
 
 return Settings
