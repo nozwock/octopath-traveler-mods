@@ -2,8 +2,12 @@ local UEHelpers = require("UEHelpers")
 local inspect = require("inspect")
 local Settings = require("settings")
 
-local function Log(msg)
-	print("[SpeedWarp] " .. msg .. "\n")
+local function Log(...)
+	local args = table.pack(...)
+	for i = 1, #args do
+		args[i] = tostring(args[i])
+	end
+	print("[SpeedWarp] " .. table.concat(args, ", ") .. "\n")
 end
 
 Log("Processing settings:\n" .. inspect(Settings))

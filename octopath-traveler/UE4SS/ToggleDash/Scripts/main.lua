@@ -1,7 +1,11 @@
 local UEHelpers = require("UEHelpers")
 
-local function Log(msg)
-	print("[ToggleDash] " .. msg .. "\n")
+local function Log(...)
+	local args = table.pack(...)
+	for i = 1, #args do
+		args[i] = tostring(args[i])
+	end
+	print("[ToggleDash] " .. table.concat(args, ", ") .. "\n")
 end
 
 --- Runs callback once PlayerController is available
@@ -65,7 +69,7 @@ RegisterMod(function()
 	Log("Starting mod initialization")
 
 	local IsRunningFirstGameBool = IsRunningFirstGame()
-	Log(string.format("IsRunningFirstGame:%s", tostring(IsRunningFirstGameBool)))
+	Log("IsRunningFirstGame:" .. tostring(IsRunningFirstGameBool))
 
 	local KSGameStatics
 	if IsRunningFirstGameBool then
