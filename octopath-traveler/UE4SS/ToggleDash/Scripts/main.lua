@@ -68,11 +68,11 @@ end
 RegisterMod(function()
 	Log("Starting mod initialization")
 
-	local IsRunningFirstGameBool = IsRunningFirstGame()
-	Log("IsRunningFirstGame:" .. tostring(IsRunningFirstGameBool))
+	local bIsRunningFirstGame = IsRunningFirstGame()
+	Log("IsRunningFirstGame:" .. tostring(bIsRunningFirstGame))
 
 	local KSGameStatics
-	if IsRunningFirstGameBool then
+	if bIsRunningFirstGame then
 		KSGameStatics = StaticFindObject("/Script/Octopath_Traveler.Default__KSGameStatics")
 	else
 		KSGameStatics = StaticFindObject("/Script/Majesty.Default__KSGameStatics")
@@ -128,7 +128,7 @@ RegisterMod(function()
 		end
 	end)
 
-	if IsRunningFirstGameBool then
+	if bIsRunningFirstGame then
 		-- note: ActionController_Impl_C:OnActionDash triggers for dash key press and releases, and resets by game
 		-- Resets by game trigger both :OnActionDash and :ResetDash
 
