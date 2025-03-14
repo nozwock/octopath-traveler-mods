@@ -1,24 +1,31 @@
-local Settings = { Keybinds = {} }
+local Settings = { Keybinds = {}, CombatSpeed = {} }
 
 -- EDITABLE SECTION START
 
+-- The game speed list that you can cycle through in-game, via either
+-- the "Path Action/Details" key or the custom keybind GameSpeedCycle,
+-- that's listed below in this settings file.
+--
 -- 1x is in the list implicitly.
 Settings.GameSpeedList = { 2 }
 
+-- Game speed-ups in combat mode apply only after the player has chosen a battle action.
+Settings.CombatSpeed.OnlyInTurnResolution = true
+
 -- Automatically increases game speed upon entering combat
 -- and restores the previous speed when the battle ends.
-Settings.AutoCombatSpeedup = {
+Settings.CombatSpeed.AutoSpeedup = {
 	Enable = true,
+	-- Game speed to start the combat with.
 	CombatGameSpeed = 2,
-	-- Speeds up the game only after the player has chosen a battle action.
-	OnlyInTurnResolution = true,
-	-- Restores the game speed to its pre-battle value,
-	-- even if the user adjusted the speed mid-combat using GameSpeedCycle.
-	--
-	-- If disabled, the game speed will not be reset after battle
-	-- if the user changed it using the GameSpeedCycle hotkey.
-	ForceRestoreGameSpeed = true,
 }
+
+-- Restores the game speed to its pre-combat value once the combat is over,
+-- even if the user adjusted the speed mid-combat using GameSpeedCycle.
+--
+-- If disabled, even with CombatSpeed.AutoSpeedup, the game speed will not be reset after battle
+-- if the user changed it using the GameSpeedCycle hotkey.
+Settings.CombatSpeed.ForceRestoreGameSpeed = true
 
 -- Cycle through all the speeds in the GameSpeedList.
 Settings.Keybinds.GameSpeedCycle = {
