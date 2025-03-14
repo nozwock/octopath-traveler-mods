@@ -90,11 +90,6 @@ Settings.Keybinds.GameSpeedCycle = {
     EXECUTE
     PRINT_SCREEN
     INS
-
-    Valid modifier keys:
-    SHIFT
-    CONTROL
-    ALT
     DEL
     HELP
     ZERO
