@@ -57,7 +57,7 @@ local function IsRunningFirstGame()
 		return true
 	end
 
-	KSGameStaticsClass = StaticFindObject("/Script/Majesty.Default__KSGameStatics")
+	KSGameStaticsClass = StaticFindObject("/Script/Majesty.KSGameStatics")
 	if KSGameStaticsClass:IsValid() then
 		return false
 	end
