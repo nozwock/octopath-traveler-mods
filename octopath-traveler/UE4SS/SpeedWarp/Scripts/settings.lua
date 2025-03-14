@@ -3,7 +3,7 @@ local Settings = { Keybinds = {}, CombatSpeed = {} }
 -- EDITABLE SECTION START
 
 -- The game speed list that you can cycle through in-game, via either
--- the "Path Action/Details" key or the custom keybind GameSpeedCycle,
+-- the "Travel Banter" key (if enabled) or the custom keybind GameSpeedCycle,
 -- that's listed below in this settings file.
 --
 -- 1x is in the list implicitly.
@@ -16,6 +16,7 @@ Settings.CombatSpeed.OnlyInTurnResolution = true
 -- and restores the previous speed when the battle ends.
 Settings.CombatSpeed.AutoSpeedup = {
 	Enable = true,
+
 	-- Game speed to start the combat with.
 	CombatGameSpeed = 2,
 }
@@ -30,9 +31,14 @@ Settings.CombatSpeed.ForceRestoreGameSpeed = true
 -- Cycle through all the speeds in the GameSpeedList.
 Settings.Keybinds.GameSpeedCycle = {
 	Key = "F8",
-	ModifierKeys = {},
+
 	-- E.g.
 	-- ModifierKeys = { "SHIFT", "ALT" },
+	ModifierKeys = {},
+
+	-- Allows using the "Travel Banter" key to cycle through the game speed list as well,
+	-- but only while in combat mode since the key is used by the game outside of it.
+	UseTravelBanterKeyInCombat = true,
 }
 
 -- EDITABLE SECTION END

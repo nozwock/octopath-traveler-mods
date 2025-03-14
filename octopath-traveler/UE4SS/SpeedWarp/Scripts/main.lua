@@ -56,6 +56,49 @@ local function LinearSearch(list, x)
 	return nil
 end
 
+---@param Class UObject
+---@param FunctionPattern string
+---@return UFunction[]?
+local function FindFunctionsByPattern(Class, FunctionPattern)
+	if not Class:IsValid() then
+		return nil
+	end
+
+	local Results = {}
+	Class:ForEachFunction(function(Function)
+		local FunctionName = Function:GetFName():ToString()
+
+		if string.find(FunctionName, FunctionPattern) then
+			table.insert(Results, Function)
+		end
+	end)
+
+	return Results
+end
+
+---@param Class UObject
+---@param FunctionPattern string
+---@return string?
+local function FindFirstFunctionNameByPattern(Class, FunctionPattern)
+	local Fns = FindFunctionsByPattern(Class, FunctionPattern)
+	if not Fns then
+		return nil
+	end
+
+	for i = 1, #Fns do
+		Fns[i] = (Fns[i]):GetFName():ToString()
+	end
+	table.sort(Fns, function(a, b)
+		return a < b
+	end)
+
+	if #Fns > 0 then
+		return Fns[1]
+	end
+
+	return nil
+end
+
 RegisterMod(function()
 	Log("Starting mod initialization")
 
@@ -221,12 +264,7 @@ RegisterMod(function()
 		end
 	end)
 
-	-- todo: An option to use the "Path Action/Details" for cycling game speed, but ONLY in combat,
-	-- as the key actually is used outside of combat by the game. So, this atleast allows limited
-	-- ability for users with gamepad to cycle through the game speed list.
-
-	local GameSpeedCycleKeybind = Settings.Keybinds.GameSpeedCycle
-	RegisterKeyBind(GameSpeedCycleKeybind.Key, GameSpeedCycleKeybind.ModifierKeys, function()
+	local function HandleToggleKeybindPress()
 		local bIsBattleOn = IsBattleOn()
 		if bIsBattleOn then
 			ModState.IsSpeedChangedDuringBattle = true
@@ -242,7 +280,27 @@ RegisterMod(function()
 		if not IsHandledInTurnResolution then
 			SetGameSpeed(Settings.GameSpeedList[ModState.ActiveGameSpeedIdx])
 		end
-	end)
+	end
+
+	if Settings.Keybinds.GameSpeedCycle.UseTravelBanterKeyInCombat then
+		local KSPlayerControllerBPClassPath = "/Game/Character/BP/KSPlayerControllerBP.KSPlayerControllerBP_C"
+		local KSPlayerControllerBPClass = StaticFindObject(KSPlayerControllerBPClassPath)
+		assert(KSPlayerControllerBPClass:IsValid())
+
+		-- Making use of the "Travel Banter" key since it's unused by the first game during combat.
+		-- Should work even if "Travel Banter" is rebinded to some other key.
+		local TravelBanterActionFnName =
+			FindFirstFunctionNameByPattern(KSPlayerControllerBPClass, "InpActEvt_StartButton_")
+		assert(TravelBanterActionFnName)
+		RegisterHook(string.format("%s:%s", KSPlayerControllerBPClassPath, TravelBanterActionFnName), function()
+			if IsBattleOn() then
+				HandleToggleKeybindPress()
+			end
+		end)
+	end
+
+	local GameSpeedCycleKeybind = Settings.Keybinds.GameSpeedCycle
+	RegisterKeyBind(GameSpeedCycleKeybind.Key, GameSpeedCycleKeybind.ModifierKeys, HandleToggleKeybindPress)
 
 	Log("Mod initialization complete")
 end)
