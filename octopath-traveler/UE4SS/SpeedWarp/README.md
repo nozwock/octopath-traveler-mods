@@ -2,9 +2,9 @@
 Automatically increases game speed during combat and allows cycling through a list of speeds, with configuration support.
 
 ## Usage
-In and out of combat, you can cycle through different game speeds using either the `"Travel Banter"`, or a custom `GameSpeedCycle` key, set to `F8` by default.
+In and out of combat, you can cycle through different game speeds using the custom `GameSpeedCycle` key, set to `F8` by default. The `"Travel Banter"` key will work the same as well, but only in combat mode.
 
-By default,
+Some notable defaults are:
 - Game speed is automatically increased during combat, to a value set in the settings.
 - Game speed-ups in combat mode apply only after the player has chosen a battle action.
 
