@@ -10,6 +10,8 @@ Some of the ways to achieve this would be to:
 - Remove the `IfNot` jump bytecode instruction, but then the `ScriptBytecodeSize` would need to reflect the new size. Newer git builds of [UAssetGUI] seem to be able to handle this automatically.
 - Set the `IfNot` jump offset `153` to `81` in this case, which would ensure the branch starting at `153` offset never executes.
 
+Blueprint file path in the `.pak` archive: `Octopath_Traveler/Content/Object/BP/TreasureBoxBP.uasset`
+
 ## Tools
 - [UAssetGUI]
 - [kismet-analyzer](https://github.com/trumank/kismet-analyzer)
